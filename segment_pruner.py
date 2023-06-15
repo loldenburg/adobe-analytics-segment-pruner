@@ -1,3 +1,6 @@
+# This is a slightly shortened and modified version of the Segment Pruner, part of the Adobe Analytics Component Manager for Google Sheets.
+# If you prefer pruning segments comfortably from a Google Sheet, check out the Component Manager here: 
+# https://docs.datacroft.de/main-functions/segment-pruner
 import copy
 import datetime as dt
 from json import dumps
@@ -5,11 +8,14 @@ from logging import Logger
 from typing import Optional
 import aanalytics2 as aa2
 
-# ...
-# READ: We assume you have imported the aanalytics2 
-# module, logged in to the client and referenced the module as `ags`
-# for help with this, see https://www.datanalyst.info/python/python-tutorials-for-adobe-analytics-api-2-0/
-# ...
+ags = aa2.Login() # READ NEXT ROWS!
+# ---
+# ATTENTION: We assume you have imported the aanalytics2
+# module, logged in to the client and referenced the module as `ags`.
+# Everybody does this differently, so please refer to https://github.com/pitchmuc/adobe-analytics-api-2.0/blob/master/docs/getting_started.md
+# for the optimum solution in your case 
+# ---
+
 rs_id = "the_report_suite_id"
 seg_id = "s3537_646796b50f59414c34dcacbf"
 metric_ids = ["metrics/occurrences", "metrics/orders"]
@@ -113,7 +119,7 @@ def key_exists_in_dict(key: str = None, dct: dict = None):
 def at_least_once_in_dict(key: str = None, values_whitelist: list = None, dct: dict = None):
     for k, v in dct.items():
         if (k == key) and (v not in values_whitelist):
-            log().info(f"Found a key '{k}' whose value '{v}' is not in the list of values.")
+            print(f"Found a key '{k}' whose value '{v}' is not in the list of values.")
             return True
         elif isinstance(v, dict):
             return at_least_once_in_dict(key, values_whitelist, v)
@@ -160,7 +166,7 @@ def find_empty_arrays(d: dict = None, the_id: int = None, ids_to_del: list = Non
 def extract_empty_group_ids(d: dict = None, the_id: int = None, ids_to_del: list = None) -> list:
     if (isinstance(d, dict)) and (d.get("func") is not None):
         if at_least_once_in_dict(key="func", values_whitelist=grouping_functions, dct=d) is False:
-            log().info(f"found empty group: {d}\n")
+            print(f"found empty group: {d}\n")
             ids_to_del.append(d["_id"])
             return
     if d.get("pred") is not None:
@@ -177,8 +183,8 @@ def slice_up_segment(dfn: dict = None, components: list = None, alt_definitions:
                      original_seg_wrk: dict = None, iterator: int = None):
     if (dfn.get("pred") is None) and (
             dfn.get("preds") is None):  # base case, no deeper level exists
-        log().info(f"component nr. {iterator} found:")
-        log().info(dumps(dfn, indent=3))
+        print(f"component nr. {iterator} found:")
+        print(dumps(dfn, indent=3))
 
         components.append(dfn)
         iterator += 1
@@ -236,7 +242,7 @@ def compare_data(_comp_data, _current_data):
         # if the 2 metrics differ between the two segment definitions
         word = "not identical"
         if comp_metric1 == 0:  # special case: the new segment is empty (= actually also not identical, can be discarded as a solution)
-            log().info("The new segment definition returns no data.")
+            print("The new segment definition returns no data.")
             return "zero"
     else:
         # if there is no difference for the first metric between the two segment definitions, we check the other metric
@@ -244,7 +250,7 @@ def compare_data(_comp_data, _current_data):
             word = "identical"
         else:
             word = f"nearly identical, but {metric_ids[1]} are not"
-    log().info(
+    print(
         f"The new segment definition ({comp_metric1}) is {word} to the original segment definition ({curr_metric1}).")
 
     return word
@@ -344,9 +350,9 @@ for ind, seg in enumerate(alt_definitions):
         seg["seg_def"]["definition"]["container"] = delete_subdict_by_id(
             seg["seg_def"]["definition"]["container"], i)
     if seg["seg_def"] == seg["seg_def_raw"]:
-        log().info("no empty groups to delete found")
+        print("no empty groups to delete found")
     else:
-        log().info("removed at least one empty group")
+        print("removed at least one empty group")
 
 # remove duplicate definitions: Removing empty groups can lead to duplicate definitions (e.g. if a "hit" container
 # around an empty "and" container is removed, the segment definition without the "and" container will be identical
@@ -357,7 +363,7 @@ for ind, seg in enumerate(alt_definitions):
         for ind2, seg2 in enumerate(alt_definitions):
             if ind != ind2:
                 if seg["seg_def"]["definition"]["container"] == seg2["seg_def"]["definition"]["container"]:
-                    log().info("duplicate definition found, removing")
+                    print("duplicate definition found, removing")
                     alt_definitions_to_pop.append(ind2)  # todo ADD THIS TO ARTICLE
 
 for i in sorted(alt_definitions_to_pop, reverse=True):
@@ -391,13 +397,13 @@ for comp in components:
         var = comp.get("description", comp.get("val", {}).get("name", "no_name"))
         list_len = len(comp.get('list', []))
         if list_len < 2:
-            log().info(
+            print(
                 f"Component for variable {var} has only one value, so we will not treat it like a multi-value "
                 f"component. Skipping this component.")
             continue
-        log().info(
+        print(
             f"Pruning multi-value segment component for '{var}' of type {func} with {list_len} values")
-        log().info(f"Full component to prune: {dumps(comp, indent=2)}")
+        print(f"Full component to prune: {dumps(comp, indent=2)}")
 
         if list_len == 0:
             log().error(f"Component of type '{func}' component for variable {var} has no values, which is an "
@@ -411,11 +417,11 @@ for comp in components:
         if _id == -1:
             raise Exception(f"Component {comp_copy} has no _id!")
         delete_keys_from_dict(baseline_seg, _key="_id")
-        log().info("Getting baseline data = data as per current definition")
+        print("Getting baseline data = data as per current definition")
         baseline_data = get_comp_report(seg_defi=baseline_seg,
                                         _req=copy.deepcopy(req))
         if baseline_data[metric_ids[0]].sum() == 0:
-            log().info(
+            print(
                 "Component currently returns no data, it probably can be removed entirely (which will be examined in a later check). Skipping it.")
             continue
         _current_metric1 = baseline_data[metric_ids[0]].sum()
@@ -433,52 +439,52 @@ for comp in components:
         # remove duplicates
         comp_copy["list"] = list(set(comp_copy["list"]))
         if len(comp_copy["list"]) < list_len:
-            log().info(f"Removed {list_len - len(comp_copy['list'])} duplicates from component {var}")
+            print(f"Removed {list_len - len(comp_copy['list'])} duplicates from component {var}")
         list_len_no_dupes = len(comp_copy["list"])  # update list_len with the new length
 
         original_list = comp_copy["list"].copy()
         for index, value in enumerate(original_list):
             value_to_test = original_list[index]
-            log().info(f"Testing without value: {value_to_test} (value {index + 1} of {list_len})")
+            print(f"Testing without value: {value_to_test} (value {index + 1} of {list_len})")
             shorter_list = comp_copy["list"].copy()
             shorter_list.remove(value_to_test)  # [index + 1:]
             test_seg_tpl["definition"]["container"]["pred"]["list"] = shorter_list
             comp_data = get_comp_report(seg_defi=test_seg_tpl, _req=copy.deepcopy(req))
             result = compare_data(comp_data, baseline_data)
             if result == "identical":
-                log().info(f"'{value_to_test}' can be removed from the component without changing the data.")
+                print(f"'{value_to_test}' can be removed from the component without changing the data.")
                 comp_copy["list"].remove(value_to_test)
             else:  # keep it
                 shortened_multival_comps[-1]["new_definition"]["list"].append(value_to_test)
-                log().info(f"'{value_to_test}' has to stay in the filter.")
+                print(f"'{value_to_test}' has to stay in the filter.")
 
             # we are done iterating through the multi-value lists of the component
-        log().info(f"Done pruning the {func} values of component {var}")
+        print(f"Done pruning the {func} values of component {var}")
         shortened_multival_comps[-1]["new_definition_str"] = delimiter_map[func].join(
             shortened_multival_comps[-1]["new_definition"]["list"])
         shortened_multival_comps[-1]["new_definition"]["_id"] = _id  # re-add the ID
         new_len = len(shortened_multival_comps[-1]["new_definition"]["list"])
         if new_len == list_len:
-            log().info(f"Component {var} could not be pruned, all values are needed.")
+            print(f"Component {var} could not be pruned, all values are needed.")
             shortened_multival_comps[-1]["pruned"] = False
         else:
-            log().info(f"Component {var} can be pruned from {list_len} to {new_len} values.")
+            print(f"Component {var} can be pruned from {list_len} to {new_len} values.")
             shortened_multival_comps[-1]["pruned"] = True
             shortened_multival_comps[-1]["pruned_by"] = list_len - new_len
             pruned_multival_comps += 1
 
 if multival_comps > 0:
-    log().info(f"\nThe following changes can be done to multi-value components without changing the data:\n"
+    print(f"\nThe following changes can be done to multi-value components without changing the data:\n"
                f"{dumps(shortened_multival_comps, indent=3)}")
     multi_value_msg = f"Pruning checks for {multival_comps} multi-value components done. {pruned_multival_comps} " \
                       f"value{'s' if pruned_multival_comps > 1 or pruned_multival_comps < 1 else ''} can be " \
                       f"pruned without changing the data."
-    log().info(multi_value_msg)
+    print(multi_value_msg)
 else:
-    log().info("No multi-value components found in the segment definition, skipping this step.")
+    print("No multi-value components found in the segment definition, skipping this step.")
 
 if pruned_multival_comps > 0:
-    log().info(
+    print(
         "Replacing the original multi-value components by their shortened variants in the segment definition")
 
     for sc in shortened_multival_comps:
@@ -493,7 +499,7 @@ if pruned_multival_comps > 0:
             alt_def["seg_def"] = replace_subdict_by_id(d=alt_def["seg_def"], subdict_id=the_id, key="_id",
                                                        replace_by=sc["new_definition"])
 
-log().info(
+print(
     f"Original segment definition after pruning multi-value elements: {dumps(original_seg_wrk, indent=2)}")
 
 # Find non-data-changing alt_definitions
@@ -501,7 +507,7 @@ iterator = 0
 alt_defs_non_chg = []  # alternative non-data-changing segment definitions
 rem_bec_subset = []  # removed because subset of larger, non-data-changing container
 for index, dfi in enumerate(alt_definitions):
-    log().info(f"Checking alternative definition {index} of {len(alt_definitions)}.")
+    print(f"Checking alternative definition {index} of {len(alt_definitions)}.")
 
     # check if segment is subset of a larger, previously evaluated, non-data-changing container (= part of same_data_but_smaller_definitions)
     # example: AND-container C with 2 Elements:
@@ -514,7 +520,7 @@ for index, dfi in enumerate(alt_definitions):
             continue
         # check against all items in previously evaluated definitions
         if is_part_of_larger_dict(dfi["removed_part"], item_to_check_against["removed_part"]):
-            log().info(f"removing because it is part of a larger, also non-data-changing container: \n"
+            print(f"removing because it is part of a larger, also non-data-changing container: \n"
                        f"Removed item: {dumps(dfi['removed_part'], indent=3)}. \n"
                        f"Subset of: {dumps(item_to_check_against['removed_part'], indent=3)}")
             rem_bec_subset.append(dfi)
@@ -526,13 +532,13 @@ for index, dfi in enumerate(alt_definitions):
     this_dfi_seg = copy.deepcopy(dfi["seg_def"])
     # remove _id keys from segment definitions to pass AA validation
     delete_keys_from_dict(this_dfi_seg)
-    log().info(
+    print(
         f"Round {iterator}: Validating temp segment '{this_dfi_seg['name']}'.")
 
     new_seg = ags.createSegmentValidate(segmentJSON=this_dfi_seg)
     if new_seg.get("errorCode") is not None:
         raise Exception(f"Error validating segment: {new_seg}")
-    log().info(f"Segment validated successfully")
+    print(f"Segment validated successfully")
     comp_data = get_comp_report(seg_defi=this_dfi_seg, _req=copy.deepcopy(req))
     # compare values to original: if the same, segment component is not needed => will be added to same_data_but_smaller_definitions
     result = compare_data(comp_data, current_data)
@@ -543,20 +549,20 @@ for index, dfi in enumerate(alt_definitions):
 
     iterator += 1
 
-log().info(
+print(
     f"Validating {len(alt_definitions)} alternative segment definitions completed. In the process, we did not validate \n"
     f"{len(rem_bec_subset)} parts because they are part of a larger, also non-data-changing container.\n")
 len_alt_defs_non_chg = len(alt_defs_non_chg)
-log().info(f"{len_alt_defs_non_chg} alternative, shorter (-1), non-data-changing segment definitions found")
+print(f"{len_alt_defs_non_chg} alternative, shorter (-1), non-data-changing segment definitions found")
 
 if len_alt_defs_non_chg == 0:
     if pruned_multival_comps == 0:
-        log().info(
+        print(
             "No alternative segment definitions found where we could remove a component completely without changing the data.")
         exit()
 
     else:
-        log().info(
+        print(
             "No alternative segment definitions found where we could remove a component completely without changing the data. "
             f"But we have {pruned_multival_comps} multi-value "
             f"component{'s' if multival_comps > 0 or multival_comps < 1 else ''} that we can try to prune. "
@@ -566,7 +572,7 @@ if len_alt_defs_non_chg == 0:
                       f"multi-value components that we could prune."
         alternative_segment = copy.deepcopy(original_seg_wrk)
         alternative_segment[
-            "name"] = f"Pruned Version {helpers.get_datesuffix()} of: {alternative_segment['name']}"
+            "name"] = f"Pruned Version {dt.datetime.now().strftime('%Y%m%d-%H%M%S')} of: {alternative_segment['name']}"
         delete_keys_from_dict(alternative_segment)
         new_seg = ags.createSegment(segmentJSON=alternative_segment)
         msg = f"Created alternative pruned segment:\n\nName: '{alternative_segment['name']}'\n" \
@@ -575,10 +581,10 @@ if len_alt_defs_non_chg == 0:
               f"\n\nTo create the segment, {pruned_multival_comps} multi-value components were found that we " \
               f"could prune without losing any data. We could not find a component however that we could " \
               f"remove entirely from the segment without changing the data."
-        log().info(msg)
+        print(msg)
         exit()
 
-log().info(
+print(
     f"We identified {len(alt_defs_non_chg)} parts that we could remove from the segment without changing the data.\n"
     f"However, we cannot simply remove all parts. Instead, we need to find out which combinations of these "
     f"parts can be removed without changing the data, starting with the largest possible combinations.")
@@ -593,11 +599,11 @@ log().info(
 # B = [[1], [1,2], [1,2,3], [2], [2,3], [3]]
 alt_defs_non_chg_combos = [alt_defs_non_chg[i:j] for i in range(len(alt_defs_non_chg)) for j in
                            range(i + 1, len(alt_defs_non_chg) + 1)]
-log().info(
+print(
     f"Generated all possible ({len(alt_defs_non_chg_combos)}) combinations of the parts that we can remove from the segment without changing the data.")
 # sort combinations by length of the combination
 alt_defs_non_chg_combos.sort(key=len, reverse=True)
-log().info(f"the longest combination has {len(alt_defs_non_chg_combos[0])} parts.")
+print(f"the longest combination has {len(alt_defs_non_chg_combos[0])} parts.")
 
 # change the structure a bit to have a slot for the data results
 alt_defs_non_chg_combos_enh = []
@@ -641,7 +647,7 @@ for ind, combo_el in enumerate(alt_defs_non_chg_combos_enh):
     pruned_seg_combos.append({"seg_def": copy.deepcopy(original_seg_def_copy),
                               "combo_id": ind + 1})  # we want to start with 1, not 0 (used just for logging)
 
-log().info(
+print(
     f"Created {len(pruned_seg_combos)} 'pruned segment' variations (segments without all viable combinations of"
     f" parts which are in themselves not data-changing")
 
@@ -661,9 +667,9 @@ for index, seg in enumerate(pruned_seg_combos):
     if new_seg.get("errorCode") is not None:
         raise Exception(f"Error validating combo-pruned segment: {new_seg}")
 
-    log().info(f"Segment validated successfully")
+    print(f"Segment validated successfully")
     pruned_seg_to_eval[
-        "name"] = f"Pruned Segment {seg['combo_id']}-{helpers.get_datesuffix()} of: {pruned_seg_to_eval['name']}"
+        "name"] = f"Pruned Segment {seg['combo_id']}-{dt.datetime.now().strftime('%Y%m%d-%H%M%S')} of: {pruned_seg_to_eval['name']}"
     # for debugging: uncomment to create a segment for each combination
     # new_seg_ids.append(ags.createSegment(segmentJSON=original_seg_copy))
     comp_data = get_comp_report(seg_defi=pruned_seg_to_eval, _req=req_copy)
@@ -672,7 +678,7 @@ for index, seg in enumerate(pruned_seg_combos):
     seg[metric_ids[0]] = comp_data[metric_ids[0]].sum()
     seg[metric_ids[1]] = comp_data[metric_ids[1]].sum()
     if result == "identical":
-        log().info(
+        print(
             f"Found largest possible non-data-changing combination (index {index}, combo ID {seg['combo_id']}) of parts!")
         valid_combo = {
             "seg_json": pruned_seg_to_eval,
@@ -690,17 +696,17 @@ if valid_combo is None:
         "Something went wrong. We did not find a valid combination of parts that we can remove from the segment without changing the data.")
 
 output_str = "----Summary----\n"
-log().info(
+print(
     "The following pruned segment definition is a valid replacement as the data it returns is identical to that of the original segment:")
-log().info(f"{dumps(valid_combo, indent=2)} \n")
+print(f"{dumps(valid_combo, indent=2)} \n")
 output_str += f"\nFound an alternative segment definition where some parts were removed without changing the data the original segment returned.\n"
 
 # create example segment and return link to segment (or Segment ID)
 # alternative_segment = copy.deepcopy(original_seg_wrk)
 alternative_segment = valid_combo["seg_json"]
-alternative_segment["name"] = f"Pruned Version {helpers.get_datesuffix()} of: {original_seg_wrk['name']}"
+alternative_segment["name"] = f"Pruned Version {dt.datetime.now().strftime('%Y%m%d-%H%M%S')} of: {original_seg_wrk['name']}"
 new_seg = ags.createSegment(segmentJSON=alternative_segment)
 output_str += f"\nCreated alternative segment: \nName: '{alternative_segment['name']}'\n" \
               f"ID: '{new_seg['id']}'. \n\nTo find the " \
               f"segment, note that the owner is the same user as the owner of the original segment."
-log().info(output_str)
+print(output_str)
