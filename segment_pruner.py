@@ -1,9 +1,11 @@
 # This is a slightly shortened and modified version of the Segment Pruner, part of the Adobe Analytics Component Manager for Google Sheets.
-# If you prefer pruning segments comfortably from a Google Sheet, check out the Component Manager here: 
+# If you prefer pruning segments comfortably from a Google Sheet, check out the Component Manager here:
 # https://docs.datacroft.de/main-functions/segment-pruner
 import copy
 import datetime as dt
 from json import dumps
+from logging import Logger
+from typing import Optional
 import aanalytics2 as aa2
 
 ags = aa2.Login() # READ NEXT ROWS!
@@ -323,7 +325,7 @@ req = {
         ]
     }
 }
-# query the report
+# query the benchmark report
 current_data = ags.getReport2(req).dataframe
 
 current_metric1 = current_data.loc[0, metric_ids[0]]
@@ -550,6 +552,7 @@ for index, dfi in enumerate(alt_definitions):
 print(
     f"Validating {len(alt_definitions)} alternative segment definitions completed. In the process, we did not validate \n"
     f"{len(rem_bec_subset)} parts because they are part of a larger, also non-data-changing container.\n")
+
 len_alt_defs_non_chg = len(alt_defs_non_chg)
 print(f"{len_alt_defs_non_chg} alternative, shorter (-1), non-data-changing segment definitions found")
 
