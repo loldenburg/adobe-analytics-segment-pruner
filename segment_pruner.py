@@ -4,8 +4,6 @@
 import copy
 import datetime as dt
 from json import dumps
-from logging import Logger
-from typing import Optional
 import aanalytics2 as aa2
 
 ags = aa2.Login() # READ NEXT ROWS!
