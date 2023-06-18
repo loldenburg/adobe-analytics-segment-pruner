@@ -4,8 +4,6 @@
 import copy
 import datetime as dt
 from json import dumps
-from logging import Logger
-from typing import Optional
 import aanalytics2 as aa2
 
 ags = aa2.Login() # READ NEXT ROWS!
@@ -609,14 +607,11 @@ print(f"the longest combination has {len(alt_defs_non_chg_combos[0])} parts.")
 
 # change the structure a bit to have a slot for the data results
 alt_defs_non_chg_combos_enh = []
-iterator = 1
-# add a combo_id to each combination
-for combo in alt_defs_non_chg_combos:
+for iterator, combo in enumerate(alt_defs_non_chg_combos, start=1):
     alt_defs_non_chg_combos_enh.append({
         "seg_combos": combo,
         "combo_id": iterator
     })
-    iterator += 1
 
 ### Create segments that have all the valid combinations removed
 pruned_seg_combos = []
