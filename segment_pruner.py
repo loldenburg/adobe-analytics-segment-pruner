@@ -92,6 +92,7 @@ def remove_nones_from_dict(d: dict = None):
     else:
         return d
 
+# returns True if a dict_to_find is a sub-dictionary of a dict_to_search (works only within segment grouping functions)
 def is_part_of_larger_dict(dict_to_find, dict_to_search):
     if dict_to_search.get("preds") is not None:
         for el in dict_to_search["preds"]:
