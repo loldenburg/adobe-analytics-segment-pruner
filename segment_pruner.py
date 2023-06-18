@@ -1,4 +1,4 @@
-# This is a slightly shortened and modified version of the Segment Pruner, part of the Adobe Analytics Component Manager for Google Sheets.
+# This is a slightly shortened and modified version of the Segment Pruner, part of the Adobe Analytics Component Manager for Google Sheets, created by Lukas Oldenburg.
 # A step-by-step tutorial for this code is at https://thebounce.io/making-large-segments-small-again-b4d4aa089200
 #
 # If you prefer pruning segments comfortably from a Google Sheet, check out the Component Manager here:
